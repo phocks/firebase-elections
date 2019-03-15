@@ -14,4 +14,6 @@ const app = firebase.initializeApp({
 
 const database = firebase.database();
 
-database.ref("test").set("This is coming from the server...");
+const update = { test: "testing" };
+
+database.ref("test").set(update);
