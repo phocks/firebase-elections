@@ -8,5 +8,11 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "firebase": "^5.9.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.3.3333"
+  }
 }
