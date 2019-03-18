@@ -2,13 +2,12 @@ import * as functions from "firebase-functions";
 // import { object } from "firebase-functions/lib/providers/storage";
 const fs = require("fs");
 const unzip = require("unzipper");
-// var convert = require("xml-js");
 const parser = require("fast-xml-parser");
 const PromiseFtp = require("promise-ftp");
 const ftp = new PromiseFtp();
 const _ = require("underscore");
 const path = require("path");
-const util = require("util");
+// const util = require("util");
 
 // The Firebase Admin SDK to access the Firebase Realtime Database.
 const admin = require("firebase-admin");
@@ -57,48 +56,35 @@ const getResults = async () => {
         "/tmp/extracted/xml/" + filename,
         "utf8",
         (err: any, data: any) => {
-          // const json = convert.xml2js(data, {
-          //   compact: true,
-          //   trim: true,
-          //   nativeType: true,
-          //   nativeTypeAttributes: true
-          // });
-
-          // console.log(json);
-
-          // const rawResults =
-          //   json.MediaFeed.Results.Election[0].House.Analysis.National
-          //     .TwoPartyPreferred.Coalition;
-
-          // const results = rawResults.map((result: any) => {
-          //   return {
-          //     Id: result.CoalitionIdentifier._attributes.Id,
-          //     ShortCode: result.CoalitionIdentifier._attributes.ShortCode,
-          //     CoalitionName: result.CoalitionIdentifier.CoalitionName._text,
-          //     Percentage: result.Votes._attributes.Percentage,
-          //     Swing: result.Votes._attributes.Swing,
-          //     Votes: result.Votes._text
-          //   };
-          // });
-
-          // console.log(results);
+          if (err) {
+            console.error(err);
+            return;
+          }
 
           const jsonObj = parser.parse(data, {
+            attributeNamePrefix: "",
+            textNodeName: "Value",
             ignoreAttributes: false,
+            parseNodeValue: true,
             parseAttributeValue: true
           });
 
-          console.log(
-            util.inspect(jsonObj, false, null, true /* enable colors */)
-          );
+          // console.log(
+          //   util.inspect(jsonObj, false, null, true /* enable colors */)
+          // );
 
-          // admin
-          //   .database()
-          //   .ref("/test")
-          //   .set({ results: results })
-          //   .then(() => {
-          //     console.log("Done...");
-          //   });
+          console.log(jsonObj)
+
+          // const house = jsonObj.MediaFeed.Results.Election[0];
+          const senate = jsonObj.MediaFeed.Results.Election[1];
+
+          admin
+            .database()
+            .ref("/test")
+            .set({ results: senate })
+            .then(() => {
+              console.log("Done...");
+            });
         }
       );
     });
