@@ -21,7 +21,7 @@ const directory = "/20499/Detailed/Verbose/";
 // let currentResults;
 
 // Gets results and stores in currentResults
-const getResults = async () => {
+const getResults = async mainResponse => {
   // Connect to FTP server and log server message
   const serverMessage = await ftp.connect({ host: ftpServer });
   console.log(serverMessage);
@@ -30,10 +30,10 @@ const getResults = async () => {
   const list = await ftp.list(directory);
 
   // Get a random election result
-  // const zipFile = list[Math.floor(Math.random() * list.length)];
+  const zipFile = list[Math.floor(Math.random() * list.length)];
 
   // OR Get the latest election result
-  const zipFile = list[list.length - 1]; // Latest
+  // const zipFile = list[list.length - 1]; // Latest
 
   const fileName = zipFile.name;
   console.log(fileName);
@@ -73,7 +73,7 @@ const getResults = async () => {
           //   util.inspect(jsonObj, false, null, true /* enable colors */)
           // );
 
-          console.log(jsonObj)
+          console.log(jsonObj);
 
           // const house = jsonObj.MediaFeed.Results.Election[0];
           const senate = jsonObj.MediaFeed.Results.Election[1];
@@ -85,17 +85,19 @@ const getResults = async () => {
             .then(() => {
               console.log("Done...");
             });
+
+          mainResponse.status(200).send("Ok");
         }
       );
     });
 };
 
-export const updateFromFtp = functions.https.onRequest((request, response) => {
-  // Initial pull
-  getResults();
-
-  response.status(200).send("Ok");
-});
+export const updateFromFtp = functions
+  .runWith({ memory: "512MB", timeoutSeconds: 120 })
+  .https.onRequest((request, response) => {
+    // Initial pull
+    getResults(response).catch(err => console.error(err));
+  });
 
 // Helper functions
 
@@ -110,11 +112,11 @@ function getStream(stream: any, fileName: any) {
 
 // Return only base file name without dir
 function getMostRecentFileName(dir: any) {
-  var files = fs.readdirSync(dir);
+  const files = fs.readdirSync(dir);
 
   // use underscore for max()
   return _.max(files, function(f: any) {
-    var fullpath = path.join(dir, f);
+    const fullpath = path.join(dir, f);
 
     // ctime = creation time is used
     // replace with mtime for modification time
