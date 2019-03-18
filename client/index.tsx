@@ -1,3 +1,6 @@
+import * as React from "react";
+import ReactDOM from "react-dom";
+
 console.log("Hello ٩(●ᴗ●)۶");
 
 // This import loads the firebase namespace along with all its type information.
@@ -23,6 +26,26 @@ const database = firebase.database();
 
 const testRef = database.ref("test");
 
-testRef.on("value", function(snapshot) {
-  console.log(snapshot.val());
-});
+const App = () => {
+  const [votes, setVotes] = React.useState(0);
+
+  React.useEffect(() => {
+    console.log("Component mounted...");
+
+    testRef.on("value", function(snapshot) {
+      console.log(snapshot.val());
+      setVotes(
+        snapshot.val().results.Senate.Analysis.National.FirstPreferences.Total
+          .Votes.Value
+      );
+    });
+  }, []);
+
+  return (
+    <div>
+      <h1>Votes: {votes}</h1>
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.getElementById("app"));
