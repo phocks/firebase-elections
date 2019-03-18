@@ -2,11 +2,13 @@ import * as functions from "firebase-functions";
 // import { object } from "firebase-functions/lib/providers/storage";
 const fs = require("fs");
 const unzip = require("unzipper");
-var convert = require('xml-js');
+// var convert = require("xml-js");
+const parser = require("fast-xml-parser");
 const PromiseFtp = require("promise-ftp");
 const ftp = new PromiseFtp();
 const _ = require("underscore");
 const path = require("path");
+const util = require("util");
 
 // The Firebase Admin SDK to access the Firebase Realtime Database.
 const admin = require("firebase-admin");
@@ -51,38 +53,54 @@ const getResults = async () => {
       const filename = getMostRecentFileName("/tmp/extracted/xml/");
       console.log(filename);
 
-      fs.readFile("/tmp/extracted/xml/" + filename, "utf8", (err: any, data: any) => {
+      fs.readFile(
+        "/tmp/extracted/xml/" + filename,
+        "utf8",
+        (err: any, data: any) => {
+          // const json = convert.xml2js(data, {
+          //   compact: true,
+          //   trim: true,
+          //   nativeType: true,
+          //   nativeTypeAttributes: true
+          // });
 
-        
-        const options = {ignoreComment: true, alwaysChildren: true, compact: true};
+          // console.log(json);
 
-        const json = convert.xml2js(data, options)
+          // const rawResults =
+          //   json.MediaFeed.Results.Election[0].House.Analysis.National
+          //     .TwoPartyPreferred.Coalition;
 
-        console.log(json);
+          // const results = rawResults.map((result: any) => {
+          //   return {
+          //     Id: result.CoalitionIdentifier._attributes.Id,
+          //     ShortCode: result.CoalitionIdentifier._attributes.ShortCode,
+          //     CoalitionName: result.CoalitionIdentifier.CoalitionName._text,
+          //     Percentage: result.Votes._attributes.Percentage,
+          //     Swing: result.Votes._attributes.Swing,
+          //     Votes: result.Votes._text
+          //   };
+          // });
 
-        const rawResults =
-          json.MediaFeed.Results.Election[0].House.Analysis.National
-            .TwoPartyPreferred.Coalition;
+          // console.log(results);
 
-        const results = rawResults.map((result: any) => {
-          return {
-            Id: result.CoalitionIdentifier._attributes.Id, //results[""0""].CoalitionIdentifier._attributes
-            ShortCode: result.CoalitionIdentifier._attributes.ShortCode,
-            CoalitionName: result.CoalitionIdentifier.CoalitionName._text,
-            Percentage: result.Votes._attributes.Percentage,
-            Swing: result.Votes._attributes.Swing,
-            Votes: result.Votes._text
-          };
-        });
-
-        admin
-          .database()
-          .ref("/test")
-          .set({ results: results })
-          .then(() => {
-            console.log("Done...");
+          const jsonObj = parser.parse(data, {
+            ignoreAttributes: false,
+            parseAttributeValue: true
           });
-      });
+
+          console.log(
+            util.inspect(jsonObj, false, null, true /* enable colors */)
+          );
+
+          // admin
+          //   .database()
+          //   .ref("/test")
+          //   .set({ results: results })
+          //   .then(() => {
+          //     console.log("Done...");
+          //   });
+        }
+      );
     });
 };
 
@@ -90,7 +108,7 @@ export const updateFromFtp = functions.https.onRequest((request, response) => {
   // Initial pull
   getResults();
 
-  response.status(200).send("Okay...");
+  response.status(200).send("Ok");
 });
 
 // Helper functions
