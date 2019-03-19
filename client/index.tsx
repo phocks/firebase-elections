@@ -26,7 +26,7 @@ const database = firebase.database();
 const votesRef = database.ref(
   "test/results/Senate/Analysis/National/FirstPreferences/Total/Votes"
 );
-const fileIndexRef = database.ref("/fileIndex")
+const fileIndexRef = database.ref("/fileIndex");
 const nationalTwoPartPreferred = database.ref("/nationalTwoPartyPreferred");
 
 const App = () => {
@@ -44,12 +44,11 @@ const App = () => {
 
       setUpdated(val.Updated);
       setResults(val.results.Coalition);
-      
     });
 
     fileIndexRef.on("value", snapshot => {
-      setProgress(snapshot.val())
-    })
+      setProgress(snapshot.val());
+    });
   }, []);
 
   React.useEffect(() => {
@@ -78,28 +77,13 @@ const App = () => {
         results
           .map((result, iteration) => (
             <div className="result" key={iteration}>
-              <div>
-                Id:{" "}
-                <span className="data">{result.CoalitionIdentifier.Id}</span>
-              </div>
-              <div>
-                Name:{" "}
-                <span className="data">
-                  {result.CoalitionIdentifier.CoalitionName}
-                </span>
-              </div>
-              <div>
-                ShortCode:{" "}
-                <span className="data">
-                  {result.CoalitionIdentifier.ShortCode}
-                </span>
-              </div>
+              <h3>{result.CoalitionIdentifier.CoalitionName}</h3>
               <div>
                 Votes: <span className="data">{result.Votes.Value}</span>
               </div>
               <div>
                 Percentage:{" "}
-                <span className="data">{result.Votes.Percentage}</span>
+                <span className="data">{result.Votes.Percentage}%</span>
               </div>
               <div>
                 Swing: <span className="data">{result.Votes.Swing}</span>
@@ -107,8 +91,10 @@ const App = () => {
             </div>
           ))
           .reverse()}
-
-          <p>*Archive election progress: <span className="data">{progress}</span> of 3672</p>
+      <p>
+        *Archive election progress: <span className="data">{progress}</span> of
+        3672
+      </p>
     </div>
   );
 };
