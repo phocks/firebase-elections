@@ -23,27 +23,39 @@ const app = firebase.initializeApp({
 });
 
 const database = firebase.database();
-
 const testRef = database.ref("test");
+const votesRef = database.ref(
+  "test/results/Senate/Analysis/National/FirstPreferences/Total/Votes"
+);
 
 const App = () => {
-  const [votes, setVotes] = React.useState(0);
+  const [votes, setVotes] = React.useState("loading data...");
+  const [updated, setUpdated] = React.useState("loading data...");
 
   React.useEffect(() => {
     console.log("Component mounted...");
 
-    testRef.on("value", function(snapshot) {
-      console.log(snapshot.val());
-      setVotes(
-        snapshot.val().results.Senate.Analysis.National.FirstPreferences.Total
-          .Votes.Value
-      );
+    // testRef.on("value", function(snapshot) {
+    //   const snap = snapshot.val();
+    //   console.log(snap);
+    //   setVotes(
+    //     snap.results.Senate.Analysis.National.FirstPreferences.Total
+    //       .Votes.Value
+    //   );
+    //   setUpdated(snap.results.Updated)
+    // });
+
+    votesRef.on("value", snapshot => {
+      console.log(snapshot.val().Value);
+      setVotes(snapshot.val().Value);
     });
   }, []);
 
   return (
     <div>
-      <h1>Votes: {votes}</h1>
+      Hello
+      {/* <h1>Updated: {updated}</h1> */}
+      {/* <h1>Votes: {votes}</h1> */}
     </div>
   );
 };

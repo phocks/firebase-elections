@@ -13,30 +13,45 @@ const path = require("path");
 const admin = require("firebase-admin");
 admin.initializeApp({ databaseURL: "https://election-api.firebaseio.com" });
 
+// Get a reference to the Firebase database
+const database = admin.database();
+
 // Config
 const ftpServer = "mediafeedarchive.aec.gov.au"; // mediafeed.aec.gov.au is real life FTP on the night
-const directory = "/20499/Detailed/Verbose/";
-
-// Globals
-// let currentResults;
+const directory = "/20499/Standard/Verbose/";
 
 // Gets results and stores in currentResults
 const getResults = async mainResponse => {
   // Connect to FTP server and log server message
   const serverMessage = await ftp.connect({ host: ftpServer });
-  console.log(serverMessage);
+  console.log("FTP: " + serverMessage);
 
   // Get directory listing
   const list = await ftp.list(directory);
 
   // Get a random election result
-  const zipFile = list[Math.floor(Math.random() * list.length)];
+  // const zipFile = list[Math.floor(Math.random() * list.length)];
 
   // OR Get the latest election result
   // const zipFile = list[list.length - 1]; // Latest
 
+  // OR use database to get file index
+  const getFileIndex = async () => {
+    const snapshot = await database.ref("/fileIndex").once("value");
+    return snapshot.val();
+  };
+
+  const fileIndex = await getFileIndex();
+  console.log("Current file index: " + fileIndex);
+  const zipFile = list[fileIndex];
+  const nextFileIndex = fileIndex > list.length ? 0 : fileIndex + 1;
+
+  // Increment fileIndex on database
+  database.ref("/fileIndex").set(nextFileIndex);
+
+  // Download that file from FTP
   const fileName = zipFile.name;
-  console.log(fileName);
+  console.log("Downloading: " + fileName);
   const zipStream = await ftp.get(directory + fileName);
 
   // Write zip to disk
@@ -50,7 +65,7 @@ const getResults = async mainResponse => {
       console.log("Zip file extracted...");
 
       const filename = getMostRecentFileName("/tmp/extracted/xml/");
-      console.log(filename);
+      console.log("XML file: " + filename);
 
       fs.readFile(
         "/tmp/extracted/xml/" + filename,
@@ -73,25 +88,26 @@ const getResults = async mainResponse => {
           //   util.inspect(jsonObj, false, null, true /* enable colors */)
           // );
 
-          console.log(jsonObj);
-
-          // const house = jsonObj.MediaFeed.Results.Election[0];
+          const house = jsonObj.MediaFeed.Results.Election[0];
           const senate = jsonObj.MediaFeed.Results.Election[1];
+          const nationalTwoPartyPreferred =
+            jsonObj.MediaFeed.Results.Election[0].House.Analysis.National
+              .TwoPartyPreferred;
 
-          admin
-            .database()
-            .ref("/test")
-            .set({ results: senate })
+          database
+            .ref("/nationalTwoPartyPreferred")
+            .set({ results: nationalTwoPartyPreferred })
             .then(() => {
-              console.log("Done...");
-            });
+              console.log("Database updated...");
 
-          mainResponse.status(200).send("Ok");
+              mainResponse.status(200).send("Ok");
+            });
         }
       );
     });
 };
 
+// Main function definition
 export const updateFromFtp = functions
   .runWith({ memory: "512MB", timeoutSeconds: 120 })
   .https.onRequest((request, response) => {
