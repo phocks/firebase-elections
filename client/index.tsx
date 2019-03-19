@@ -27,35 +27,79 @@ const testRef = database.ref("test");
 const votesRef = database.ref(
   "test/results/Senate/Analysis/National/FirstPreferences/Total/Votes"
 );
+const nationalTwoPartPreferred = database.ref("/nationalTwoPartyPreferred");
 
 const App = () => {
-  const [votes, setVotes] = React.useState("loading data...");
+  const [results, setResults] = React.useState();
   const [updated, setUpdated] = React.useState("loading data...");
 
   React.useEffect(() => {
     console.log("Component mounted...");
 
-    // testRef.on("value", function(snapshot) {
-    //   const snap = snapshot.val();
-    //   console.log(snap);
-    //   setVotes(
-    //     snap.results.Senate.Analysis.National.FirstPreferences.Total
-    //       .Votes.Value
-    //   );
-    //   setUpdated(snap.results.Updated)
-    // });
+    nationalTwoPartPreferred.on("value", snapshot => {
+      const val = snapshot.val();
+      console.log(val);
 
-    votesRef.on("value", snapshot => {
-      console.log(snapshot.val().Value);
-      setVotes(snapshot.val().Value);
+      setUpdated(val.Updated);
+      setResults(val.results.Coalition);
     });
   }, []);
 
+  React.useEffect(() => {
+    if (results) {
+      const updatedElements = document.getElementsByClassName("data");
+      for (let el of updatedElements) {
+        el.className = "data highlighted";
+      }
+
+      setTimeout(() => {
+        for (let el of updatedElements) {
+          el.className = "data";
+        }
+      }, 1500);
+    }
+  });
+
   return (
     <div>
-      Hello
-      {/* <h1>Updated: {updated}</h1> */}
-      {/* <h1>Votes: {votes}</h1> */}
+      <h2>
+        National 2 party preferred as at:{" "}
+        <span className="data">{updated}</span>
+      </h2>
+
+      {results &&
+        results
+          .map((result, iteration) => (
+            <div className="result" key={iteration}>
+              <div>
+                Id:{" "}
+                <span className="data">{result.CoalitionIdentifier.Id}</span>
+              </div>
+              <div>
+                Name:{" "}
+                <span className="data">
+                  {result.CoalitionIdentifier.CoalitionName}
+                </span>
+              </div>
+              <div>
+                ShortCode:{" "}
+                <span className="data">
+                  {result.CoalitionIdentifier.ShortCode}
+                </span>
+              </div>
+              <div>
+                Votes: <span className="data">{result.Votes.Value}</span>
+              </div>
+              <div>
+                Percentage:{" "}
+                <span className="data">{result.Votes.Percentage}</span>
+              </div>
+              <div>
+                Swing: <span className="data">{result.Votes.Swing}</span>
+              </div>
+            </div>
+          ))
+          .reverse()}
     </div>
   );
 };

@@ -1,0 +1,23 @@
+body {
+  font-family: "Courier New", Courier, monospace;
+  background-color: rgb(40, 40, 40);
+  color: #33ff33;
+  margin: 20px;
+}
+
+h2 {
+  margin-bottom: 1.5em;
+}
+
+.data {
+  transition: all 750ms;
+}
+
+.highlighted {
+  background-color: #33ff33;
+  color: rgb(40, 40, 40);
+}
+
+.result {
+  margin-bottom: 1.5em;
+}

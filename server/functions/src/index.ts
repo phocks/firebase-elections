@@ -9,12 +9,24 @@ const _ = require("underscore");
 const path = require("path");
 // const util = require("util");
 
-// The Firebase Admin SDK to access the Firebase Realtime Database.
-const admin = require("firebase-admin");
-admin.initializeApp({ databaseURL: "https://election-api.firebaseio.com" });
+// Ser up Firebase db
+const firebase = require("firebase/app");
+require("firebase/database");
+require("firebase/auth");
+
+const secret = require("../.secret.js");
+
+firebase.initializeApp({
+  apiKey: secret.firebaseApiKey,
+  authDomain: "abc-news-169508.firebaseapp.com",
+  databaseURL: "https://election-api.firebaseio.com",
+  projectId: "abc-news-169508",
+  storageBucket: "abc-news-169508.appspot.com",
+  messagingSenderId: "767714403883"
+});
 
 // Get a reference to the Firebase database
-const database = admin.database();
+const database = firebase.database();
 
 // Config
 const ftpServer = "mediafeedarchive.aec.gov.au"; // mediafeed.aec.gov.au is real life FTP on the night
@@ -42,7 +54,7 @@ const getResults = async mainResponse => {
   };
 
   const fileIndex = await getFileIndex();
-  console.log("Current file index: " + fileIndex);
+  console.log("Current file index: " + fileIndex + " of " + list.length);
   const zipFile = list[fileIndex];
   const nextFileIndex = fileIndex > list.length ? 0 : fileIndex + 1;
 
@@ -96,7 +108,13 @@ const getResults = async mainResponse => {
 
           database
             .ref("/nationalTwoPartyPreferred")
-            .set({ results: nationalTwoPartyPreferred })
+            .set({
+              Updated:
+                jsonObj.MediaFeed.Results.Election[0].Updated || "NO_VALUE",
+              results: {
+                ...nationalTwoPartyPreferred
+              }
+            })
             .then(() => {
               console.log("Database updated...");
 
@@ -111,8 +129,19 @@ const getResults = async mainResponse => {
 export const updateFromFtp = functions
   .runWith({ memory: "512MB", timeoutSeconds: 120 })
   .https.onRequest((request, response) => {
-    // Initial pull
-    getResults(response).catch(err => console.error(err));
+    firebase
+      .auth()
+      .signInWithEmailAndPassword(secret.authEmail, secret.authPassword)
+      .catch(function(error) {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        // ...
+      })
+      .then(() => {
+        // Initial pull
+        getResults(response).catch(err => console.error(err));
+      });
   });
 
 // Helper functions
