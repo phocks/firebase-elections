@@ -23,16 +23,18 @@ const app = firebase.initializeApp({
 });
 
 const database = firebase.database();
-const testRef = database.ref("test");
 const votesRef = database.ref(
   "test/results/Senate/Analysis/National/FirstPreferences/Total/Votes"
 );
+const fileIndexRef = database.ref("/fileIndex")
 const nationalTwoPartPreferred = database.ref("/nationalTwoPartyPreferred");
 
 const App = () => {
   const [results, setResults] = React.useState();
   const [updated, setUpdated] = React.useState("loading data...");
+  const [progress, setProgress] = React.useState(0);
 
+  // Component did mount
   React.useEffect(() => {
     console.log("Component mounted...");
 
@@ -42,7 +44,12 @@ const App = () => {
 
       setUpdated(val.Updated);
       setResults(val.results.Coalition);
+      
     });
+
+    fileIndexRef.on("value", snapshot => {
+      setProgress(snapshot.val())
+    })
   }, []);
 
   React.useEffect(() => {
@@ -100,6 +107,8 @@ const App = () => {
             </div>
           ))
           .reverse()}
+
+          <p>*Archive election progress: <span className="data">{progress}</span> of 3672</p>
     </div>
   );
 };
