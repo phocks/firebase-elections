@@ -1,5 +1,4 @@
 import * as functions from "firebase-functions";
-// import { object } from "firebase-functions/lib/providers/storage";
 const fs = require("fs");
 const unzip = require("unzipper");
 const parser = require("fast-xml-parser");
@@ -7,6 +6,7 @@ const PromiseFtp = require("promise-ftp");
 const ftp = new PromiseFtp();
 const _ = require("underscore");
 const path = require("path");
+const slugify = require("slugify");
 // const util = require("util");
 
 // Ser up Firebase db
@@ -30,7 +30,7 @@ const database = firebase.database();
 
 // Config
 const ftpServer = "mediafeedarchive.aec.gov.au"; // mediafeed.aec.gov.au is real life FTP on the night
-const directory = "/20499/Standard/Verbose/";
+const directory = "/20499/Detailed/Verbose/";
 
 // Gets results and stores in currentResults
 const getResults = async mainResponse => {
@@ -82,7 +82,7 @@ const getResults = async mainResponse => {
       fs.readFile(
         "/tmp/extracted/xml/" + filename,
         "utf8",
-        (err: any, data: any) => {
+        async (err: any, data: any) => {
           if (err) {
             console.error(err);
             return;
@@ -100,26 +100,53 @@ const getResults = async mainResponse => {
           //   util.inspect(jsonObj, false, null, true /* enable colors */)
           // );
 
-          const house = jsonObj.MediaFeed.Results.Election[0];
-          const senate = jsonObj.MediaFeed.Results.Election[1];
           const nationalTwoPartyPreferred =
             jsonObj.MediaFeed.Results.Election[0].House.Analysis.National
               .TwoPartyPreferred;
 
-          database
-            .ref("/nationalTwoPartyPreferred")
-            .set({
-              Updated:
-                jsonObj.MediaFeed.Results.Election[0].Updated || "NO_VALUE",
-              results: {
-                ...nationalTwoPartyPreferred
-              }
-            })
-            .then(() => {
-              console.log("Database updated...");
+          const contests =
+            jsonObj.MediaFeed.Results.Election[0].House.Contests.Contest;
 
-              mainResponse.status(200).send("Ok");
-            });
+          await database.ref("/nationalTwoPartyPreferred").set({
+            Updated:
+              jsonObj.MediaFeed.Results.Election[0].Updated || "NO_VALUE",
+            results: {
+              ...nationalTwoPartyPreferred
+            }
+          });
+
+          for (const contest of contests) {
+            const pollingPlaces = contest.PollingPlaces.PollingPlace;
+
+            let newPollingPlaces = {};
+            for (const place of pollingPlaces) {
+              newPollingPlaces = {
+                ...newPollingPlaces,
+                [slugify(place.PollingPlaceIdentifier.Name, {
+                  replacement: "_", // replace spaces with replacement
+                  remove: /[/.#$\[\]]/g, // regex to remove characters
+                  lower: false // result in lower case
+                })]: place
+              };
+            }
+
+            delete contest.PollingPlaces;
+
+            contest.PollingPlaces = newPollingPlaces;
+
+            await database
+              .ref("/Contests/" + contest.PollingDistrictIdentifier.ShortCode)
+              .set(contest);
+          }
+
+          // await database
+          //   .ref("/Contests/" + contests[0].PollingDistrictIdentifier.ShortCode)
+          //   .set(contests[0]);
+
+          console.log("Database updated...");
+
+          mainResponse.status(200).send("Ok");
+          // mainResponse.status(200).json(jsonObj);
         }
       );
     });
